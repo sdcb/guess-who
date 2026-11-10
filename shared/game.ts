@@ -28,6 +28,8 @@ export interface LogEntry {
   quick?: QuickAnswer
   voiceId?: string
   card?: number
+  /** 第几回合（每次轮换提问方 +1），用来只显示最近几回合 */
+  round: number
   at: number
 }
 
@@ -36,6 +38,8 @@ export interface GameState {
   phase: Phase
   players: [Player | null, Player | null]
   turn: Seat
+  /** 本局第几回合，从 1 开始 */
+  round: number
   game: number
   winner: Seat | null
   log: LogEntry[]
@@ -54,14 +58,14 @@ export type Action =
 export type Rng = () => number
 
 export function newGame(themeId: ThemeId = DEFAULT_THEME): GameState {
-  return { themeId, phase: 'waiting', players: [null, null], turn: 0, game: 0, winner: null, log: [], nextId: 1 }
+  return { themeId, phase: 'waiting', players: [null, null], turn: 0, round: 0, game: 0, winner: null, log: [], nextId: 1 }
 }
 
 const other = (s: Seat): Seat => (s === 0 ? 1 : 0)
 const pick = (rng: Rng, n: number) => Math.min(n - 1, Math.floor(rng() * n))
 
-function log(s: GameState, e: Omit<LogEntry, 'id' | 'at'>, now: number) {
-  s.log.push({ ...e, id: s.nextId++, at: now })
+function log(s: GameState, e: Omit<LogEntry, 'id' | 'at' | 'round'>, now: number) {
+  s.log.push({ ...e, id: s.nextId++, round: s.round, at: now })
   if (s.log.length > MAX_LOG) s.log.splice(0, s.log.length - MAX_LOG)
 }
 
@@ -69,6 +73,7 @@ function start(s: GameState, rng: Rng, now: number) {
   s.game++
   s.phase = 'asking'
   s.winner = null
+  s.round = 1
   s.turn = rng() < 0.5 ? 0 : 1
   for (const p of s.players) {
     if (!p) continue
@@ -129,8 +134,8 @@ export function apply(s: GameState, seat: Seat, a: Action, rng: Rng, now: number
       if (s.phase !== 'answering' || myTurn) return '现在不能拒绝'
       if (me.refusals <= 0) return '拒绝卡已经用完了'
       me.refusals--
-      s.phase = 'asking'
-      log(s, { seat, kind: 'refuse', text: `${me.name} 用了一张拒绝卡（还剩 ${me.refusals} 张），请换个问题` }, now)
+      log(s, { seat, kind: 'refuse', text: `${me.name} 用了一张拒绝卡（还剩 ${me.refusals} 张），这回合结束` }, now)
+      nextTurn(s)
       return null
     }
     case 'flip': {
@@ -146,8 +151,7 @@ export function apply(s: GameState, seat: Seat, a: Action, rng: Rng, now: number
     }
     case 'endTurn': {
       if (s.phase !== 'reviewing' || !myTurn) return '现在不能结束回合'
-      s.turn = other(seat)
-      s.phase = 'asking'
+      nextTurn(s)
       return null
     }
     case 'guess': {
@@ -170,6 +174,12 @@ export function apply(s: GameState, seat: Seat, a: Action, rng: Rng, now: number
   return '未知操作'
 }
 
+function nextTurn(s: GameState) {
+  s.turn = other(s.turn)
+  s.phase = 'asking'
+  s.round++
+}
+
 export const quickLabel: Record<QuickAnswer, string> = { yes: '是', no: '不是', unsure: '不确定' }
 
 /** 发给某位玩家的视图：不含对手身份（结束后才公开）和对手 token。 */
@@ -178,10 +188,11 @@ export interface PlayerView {
   phase: Phase
   seat: Seat
   turn: Seat
+  round: number
   game: number
   winner: Seat | null
   me: { name: string; secret: number; refusals: number; down: number[]; rematch: boolean }
-  opp: { name: string; refusals: number; upCount: number; rematch: boolean; online: boolean; secret?: number } | null
+  opp: { name: string; refusals: number; upCount: number; down: number[]; rematch: boolean; online: boolean; secret?: number } | null
   log: LogEntry[]
 }
 
@@ -193,6 +204,7 @@ export function viewFor(s: GameState, seat: Seat, oppOnline: boolean): PlayerVie
     phase: s.phase,
     seat,
     turn: s.turn,
+    round: s.round ?? 0,
     game: s.game,
     winner: s.winner,
     me: { name: me.name, secret: me.secret, refusals: me.refusals, down: me.down, rematch: me.rematch },
@@ -200,6 +212,7 @@ export function viewFor(s: GameState, seat: Seat, oppOnline: boolean): PlayerVie
       name: opp.name,
       refusals: opp.refusals,
       upCount: BOARD_SIZE - opp.down.length,
+      down: opp.down,
       rematch: opp.rematch,
       online: oppOnline,
       secret: s.phase === 'over' ? opp.secret : undefined,

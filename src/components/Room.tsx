@@ -136,6 +136,13 @@ function Game({ code, view, send, toast }: GameProps) {
   const [firstLogId] = useState(() => view.log.at(-1)?.id ?? 0)
   const autoPlay = new Set(view.log.filter((e) => e.id > firstLogId && e.voiceId && e.seat !== view.seat).map((e) => e.id))
 
+  // 回合开始的全屏提示：进房时那一回合不提示，之后每次换人都提示一次
+  const roundKey = `${view.game}-${view.round}`
+  const [mountKey] = useState(roundKey)
+  const [seenKey, setSeenKey] = useState(roundKey)
+  const showBanner = roundKey !== mountKey && roundKey !== seenKey && view.phase !== 'over'
+  const recentLog = view.log.filter((e) => e.round > view.round - RECENT_ROUNDS || e.kind === 'guess')
+
   const canGuess = myTurn && (view.phase === 'asking' || view.phase === 'reviewing')
   const guessMode = guessWanted && canGuess
 
@@ -205,6 +212,7 @@ function Game({ code, view, send, toast }: GameProps) {
           </div>
         )}
 
+        <div className="mx-auto w-full" style={{ maxWidth: "min(600px, calc((100dvh - 120px) * 0.72))" }}>
         <Board
           items={theme.items}
           down={view.me.down}
@@ -212,7 +220,8 @@ function Game({ code, view, send, toast }: GameProps) {
           disabled={view.phase === 'over'}
           onTap={tapCard}
         />
-        <p className="text-center text-xs text-muted">点卡片可以倒下 / 立起，只有你自己能看到</p>
+        </div>
+        <p className="text-center text-xs text-muted">点卡片可以倒下 / 立起，对方能看到你倒了哪些</p>
       </section>
 
       <aside className="space-y-3">
@@ -234,10 +243,18 @@ function Game({ code, view, send, toast }: GameProps) {
           />
         </div>
         <div className="rounded-2xl bg-panel p-4 shadow-sm ring-1 ring-line">
-          <h3 className="mb-2 text-sm font-semibold text-muted">问答记录</h3>
+          <h3 className="mb-1 text-sm font-semibold text-muted">
+            {opp.name} 的面板 · 还立着 {opp.upCount} 张
+          </h3>
+          <div className="mx-auto max-w-72 pt-2">
+            <Board items={theme.items} down={opp.down} readOnly tone="theirs" />
+          </div>
+        </div>
+        <div className="rounded-2xl bg-panel p-4 shadow-sm ring-1 ring-line">
+          <h3 className="mb-2 text-sm font-semibold text-muted">问答记录 · 最近 {RECENT_ROUNDS} 回合</h3>
           <Log
             code={code}
-            entries={view.log}
+            entries={recentLog}
             seat={view.seat}
             names={names}
             cardName={(i) => theme.items[i]?.name ?? '?'}
@@ -245,6 +262,16 @@ function Game({ code, view, send, toast }: GameProps) {
           />
         </div>
       </aside>
+
+      {showBanner && (
+        <TurnBanner
+          key={roundKey}
+          mine={myTurn}
+          title={myTurn ? '轮到你了！' : `轮到 ${opp.name}`}
+          subtitle={`第 ${view.round} 回合 · ${myTurn ? '问一个问题吧' : '等对方提问'}`}
+          onDone={() => setSeenKey(roundKey)}
+        />
+      )}
 
       {confirmCard !== null && (
         <div className="fixed inset-0 z-40 grid place-items-center bg-black/50 p-4" onClick={() => setConfirmCard(null)}>
@@ -272,6 +299,25 @@ function Game({ code, view, send, toast }: GameProps) {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+const RECENT_ROUNDS = 5
+
+function TurnBanner(p: { mine: boolean; title: string; subtitle: string; onDone: () => void }) {
+  useEffect(() => {
+    if (p.mine) navigator.vibrate?.(120)
+  }, [p.mine])
+  return (
+    <div
+      className={`turn-banner fixed inset-0 z-50 flex flex-col items-center justify-center gap-3 px-6 text-center text-white ${p.mine ? 'bg-accent/90' : 'bg-black/75'}`}
+      onClick={p.onDone}
+      onAnimationEnd={p.onDone}
+      role="alert"
+    >
+      <div className="text-5xl font-black tracking-wide drop-shadow sm:text-7xl">{p.title}</div>
+      <div className="text-lg opacity-90 sm:text-2xl">{p.subtitle}</div>
     </div>
   )
 }

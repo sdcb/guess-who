@@ -64,15 +64,21 @@ describe('game', () => {
     ok(s, 0, { t: 'endTurn' })
     expect(s.turn).toBe(1)
     expect(s.phase).toBe('asking')
+    expect(s.round).toBe(2)
+    expect(viewFor(s, 1, true).opp!.down).toEqual([2])
   })
 
-  it('refusal returns the turn to the asker and runs out after two', () => {
+  it('refusal ends the asker turn and runs out after two', () => {
     const s = started()
     for (let i = 0; i < 2; i++) {
       ok(s, 0, { t: 'ask', text: `问题${i}` })
       ok(s, 1, { t: 'refuse' })
       expect(s.phase).toBe('asking')
-      expect(s.turn).toBe(0)
+      expect(s.turn).toBe(1)
+      expect(s.round).toBe(2 + i * 2)
+      ok(s, 1, { t: 'ask', text: '反问' })
+      ok(s, 0, { t: 'answer', text: '是' })
+      ok(s, 1, { t: 'endTurn' })
     }
     ok(s, 0, { t: 'ask', text: '问题3' })
     expect(apply(s, 1, { t: 'refuse' }, Math.random, 1)).toBe('拒绝卡已经用完了')
