@@ -29,13 +29,26 @@ export function Avatar({ t, className }: { t: FaceTraits; className?: string }) 
   const shade = skinShade[t.skin]
   const hair = hairColor[t.hair]
   const outline = '#3b2a22'
+  const female = t.gender === 'f'
+  const lip = '#d9465a'
 
   return (
     <svg viewBox="0 0 100 110" className={className} aria-hidden="true">
       <g transform={t.facing === 'left' ? 'translate(100 0) scale(-1 1)' : undefined}>
         {/* 衣服和脖子 */}
         <path d="M12 110 C12 88 30 80 50 80 C70 80 88 88 88 110 Z" fill={shirtColor[t.shirt]} />
-        <path d="M40 80 Q50 90 60 80" fill="none" stroke="rgba(0,0,0,.18)" strokeWidth="2" />
+        {female ? (
+          <>
+            <path d="M39 80 Q50 96 61 80 Z" fill={shade} />
+            <path d="M42 81 Q50 92 58 81" fill="none" stroke="#f2c230" strokeWidth="1.2" />
+            <circle cx="50" cy="90" r="1.8" fill="#f2c230" />
+          </>
+        ) : (
+          <>
+            <path d="M40 80 L50 91 L44 95 L37 84 Z" fill="rgba(255,255,255,.8)" />
+            <path d="M60 80 L50 91 L56 95 L63 84 Z" fill="rgba(255,255,255,.8)" />
+          </>
+        )}
         <rect x="42" y="66" width="16" height="16" rx="4" fill={shade} />
 
         {/* 长发在脑后的部分 */}
@@ -47,7 +60,11 @@ export function Avatar({ t, className }: { t: FaceTraits; className?: string }) 
         {t.earrings && <circle cx="26" cy="60.5" r="2.8" fill="#f2c230" stroke="#b8901c" strokeWidth=".8" />}
 
         {/* 头 */}
-        <ellipse cx="50" cy="50" rx="24" ry="27" fill={skin} />
+        {female ? (
+          <path d="M27 48 C27 22 73 22 73 48 C73 64 62 77 50 77 C38 77 27 64 27 48 Z" fill={skin} />
+        ) : (
+          <path d="M26 47 C26 21 74 21 74 47 L73 62 C72 72 62 77 50 77 C38 77 28 72 27 62 Z" fill={skin} />
+        )}
 
         {/* 胡子 */}
         {t.beard === 'beard' && (
@@ -71,6 +88,14 @@ export function Avatar({ t, className }: { t: FaceTraits; className?: string }) 
             <ellipse cx="72.5" cy="45" rx="3.5" ry="7" fill={hair} />
             <path d="M40 30 Q46 27 52 29" fill="none" stroke="rgba(255,255,255,.5)" strokeWidth="2" strokeLinecap="round" />
           </>
+        )}
+
+        {female && t.hat === 'none' && (
+          <g>
+            <path d="M33 27 L23 20 L24 35 Z" fill="#ff4f8b" />
+            <path d="M33 27 L43 19 L42 34 Z" fill="#ff4f8b" />
+            <circle cx="33" cy="27" r="3" fill="#d6336c" />
+          </g>
         )}
 
         {/* 帽子 */}
@@ -101,8 +126,8 @@ export function Avatar({ t, className }: { t: FaceTraits; className?: string }) 
         {/* 腮红（女生） */}
         {t.gender === 'f' && (
           <>
-            <ellipse cx="38" cy="59" rx="4.5" ry="2.8" fill="#ff7d8a" opacity=".35" />
-            <ellipse cx="66" cy="59" rx="4.5" ry="2.8" fill="#ff7d8a" opacity=".35" />
+            <ellipse cx="38" cy="59" rx="5" ry="3" fill="#ff6b81" opacity=".55" />
+            <ellipse cx="66" cy="59" rx="5" ry="3" fill="#ff6b81" opacity=".55" />
           </>
         )}
 
@@ -118,16 +143,31 @@ export function Avatar({ t, className }: { t: FaceTraits; className?: string }) 
           ].map(([x, y], i) => <circle key={i} cx={x} cy={y} r=".9" fill="#a0602f" opacity=".75" />)}
 
         {/* 眉毛、眼睛 */}
-        <path d="M39 42 Q43 39.5 47 41.5" fill="none" stroke={outline} strokeWidth="1.8" strokeLinecap="round" />
-        <path d="M56 41.5 Q60 39.5 64 42" fill="none" stroke={outline} strokeWidth="1.8" strokeLinecap="round" />
+        {female ? (
+          <>
+            <path d="M39 41 Q43 38 47 40.5" fill="none" stroke={outline} strokeWidth="1.3" strokeLinecap="round" />
+            <path d="M56 40.5 Q60 38 64 41" fill="none" stroke={outline} strokeWidth="1.3" strokeLinecap="round" />
+          </>
+        ) : (
+          <>
+            <path d="M38.5 42 L47.5 41" fill="none" stroke={outline} strokeWidth="3.2" strokeLinecap="round" />
+            <path d="M55.5 41 L64.5 42" fill="none" stroke={outline} strokeWidth="3.2" strokeLinecap="round" />
+          </>
+        )}
         <circle cx="44" cy="49" r="2.7" fill={outline} />
         <circle cx="61" cy="49" r="2.7" fill={outline} />
         <circle cx="45" cy="48" r=".9" fill="#fff" />
         <circle cx="62" cy="48" r=".9" fill="#fff" />
         {t.gender === 'f' && (
           <>
-            <path d="M41.5 47 L39.5 45.5" stroke={outline} strokeWidth="1.2" strokeLinecap="round" />
-            <path d="M63.5 47 L65.5 45.5" stroke={outline} strokeWidth="1.2" strokeLinecap="round" />
+            <g stroke={outline} strokeWidth="1.3" strokeLinecap="round">
+              <path d="M41.6 47.2 L38.8 45.6" />
+              <path d="M42.4 46.3 L40.6 44" />
+              <path d="M43.6 46 L42.8 43.4" />
+              <path d="M63.4 47.2 L66.2 45.6" />
+              <path d="M62.6 46.3 L64.4 44" />
+              <path d="M61.4 46 L62.2 43.4" />
+            </g>
           </>
         )}
 
@@ -147,9 +187,11 @@ export function Avatar({ t, className }: { t: FaceTraits; className?: string }) 
         {/* 嘴 */}
         {t.teeth ? (
           <g>
-            <path d="M44 64 Q53.5 75 63 64 Z" fill="#7a2e2a" />
+            <path d="M44 64 Q53.5 75 63 64 Z" fill="#7a2e2a" stroke={female ? lip : 'none'} strokeWidth="1.8" strokeLinejoin="round" />
             <path d="M44.5 64 L62.5 64 L61.5 66.5 Q53.5 68 45.5 66.5 Z" fill="#fff" />
           </g>
+        ) : female ? (
+          <path d="M46 64.5 Q50 63 53.5 64.5 Q57 63 61 64.5 Q53.5 72 46 64.5 Z" fill={lip} />
         ) : (
           <path d="M45.5 65 Q53.5 70.5 61.5 65" fill="none" stroke="#7a2e2a" strokeWidth="2" strokeLinecap="round" />
         )}
