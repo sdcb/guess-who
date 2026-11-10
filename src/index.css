@@ -1,0 +1,74 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: 'Inter', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei UI', 'Microsoft YaHei', system-ui, sans-serif;
+  --color-paper: #f4f1ea;
+  --color-panel: #ffffff;
+  --color-ink: #24211d;
+  --color-muted: #6b655c;
+  --color-line: #e2dccf;
+  --color-accent: #0f8a7e;
+  --color-accent-2: #0b6e64;
+  --color-danger: #c8463b;
+  --color-face: #e5efe0;
+  --color-back: #2f6f66;
+}
+
+.dark {
+  --color-paper: #14161a;
+  --color-panel: #1d2026;
+  --color-ink: #ece8df;
+  --color-muted: #9b958a;
+  --color-line: #2f333b;
+  --color-accent: #2fb5a6;
+  --color-accent-2: #46c9ba;
+  --color-danger: #ef6b5f;
+  --color-face: #d8e6d2;
+  --color-back: #1f4c46;
+  color-scheme: dark;
+}
+
+html {
+  @apply bg-paper text-ink antialiased;
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  min-height: 100dvh;
+  background: var(--color-paper);
+}
+
+/* 卡片翻倒：正面是人物，背面是花纹 */
+.flip {
+  perspective: 700px;
+}
+.flip-inner {
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.45s cubic-bezier(0.3, 0.7, 0.3, 1);
+}
+.flip.down .flip-inner {
+  transform: rotateY(180deg);
+}
+.flip-face,
+.flip-back {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.flip-back {
+  position: absolute;
+  inset: 0;
+  transform: rotateY(180deg);
+  background:
+    repeating-linear-gradient(45deg, rgb(255 255 255 / 0.09) 0 6px, transparent 6px 12px),
+    var(--color-back);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flip-inner {
+    transition: none;
+  }
+}
